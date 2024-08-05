@@ -42,15 +42,15 @@ separate_training_and_test_data = function(data, k_folds_indices, test_fold){
   
 }
 
-#' Calculate RSS using new data for the best model of an indicated size identified by subset selection
+#' Calculate MSE using new data for the best model of an indicated size identified by subset selection
 #'
 #' @param data Matrix or data.frame containing new data the response and features as columns.
 #' @param response Name of the column containing the response in data. 
 #' @param regsubsets A regsubsets object
 #' @param n The model size to evaluate. 
-#' @return The calculated RSS.
+#' @return The calculated MSE.
 #' @export
-rss_for_subset = function(data, response, regsubsets, n){
+mse_for_subset = function(data, response, regsubsets, n){
   
   # Extract the formula from the regsubsets object
   formula = as.formula(regsubsets$call[[2]])
@@ -68,9 +68,9 @@ rss_for_subset = function(data, response, regsubsets, n){
   # Calculate the predicted values using the coefficients
   predictions = as.numeric(model_matrix[, names(coefs), drop = FALSE] %*% coefs)
   
-  # Calculate the residuals and the RSS
+  # Calculate the residuals and return the MSE
   residuals = data[, response] - predictions
-  return(sum(residuals^2))
+  return(mean(residuals^2))
   
 }
 
@@ -81,10 +81,10 @@ rss_for_subset = function(data, response, regsubsets, n){
 #' @param K Number of folds. Default is 10. 
 #' @param method Type of feature selection to perform. Same as for leaps::regsubsets. Default is forward selection.
 #' @param nvmax Maximum number of features to consider. Default is all features in data. 
-#' @param plot_mean_rss A logical value indicating whether to plot the mean RSS for each size model. Default is TRUE. 
+#' @param plot_mean_mse A logical value indicating whether to plot the mean mse for each size model. Default is TRUE. 
 #' @return 
 #' @export
-cross_validated_subset_selection = function(data, response, K = 10, method = "forward", nvmax = NULL, plot_mean_rss = T){
+cross_validated_subset_selection = function(data, response, K = 10, method = "forward", nvmax = NULL, plot_mean_mse = T){
   
   # Check that response is the name of a column in data
   if(!response %in% names(data)){stop(paste(response, "is not the name of a column in data"))}
@@ -100,7 +100,7 @@ cross_validated_subset_selection = function(data, response, K = 10, method = "fo
   
   # Perform subset selection on each fold
  `%do%` <- foreach::`%do%`
-  rss_for_cv_models = foreach::foreach(fold = folds, i = seq_along(folds)) %do% {
+  mse_for_cv_models = foreach::foreach(fold = folds, i = seq_along(folds)) %do% {
     
     # Separate data into train and test sets
     training = separate_training_and_test_data(data, k_folds_indices = folds, test_fold = i)$training
@@ -113,23 +113,24 @@ cross_validated_subset_selection = function(data, response, K = 10, method = "fo
     # Replace formula variable name with the actual formula in the call
     subset_selection_results$call[[2]] = formula
     
-    # Calculate the RSS for best model of each size
-    rss_for_models = sapply(0:nvmax, function(i) 
-      rss_for_subset(data = test, response = response, regsubsets = subset_selection_results, n = i))
-    rss_for_models
+    # Calculate the MSE for best model of each size
+    mse_for_models = sapply(0:nvmax, function(i) 
+      mse_for_subset(data = test, response = response, regsubsets = subset_selection_results, n = i))
+    mse_for_models
   }
   
   # Convert the results into a data.frame
-  rss_for_cv_models = data.frame(rss_for_cv_models)
-  names(rss_for_cv_models) = paste0("fold_", 1:K)
-  row.names(rss_for_cv_models) = paste0(0:nvmax, "_features")
+  mse_for_cv_models = data.frame(mse_for_cv_models)
+  names(mse_for_cv_models) = paste0("fold_", 1:K)
+  row.names(mse_for_cv_models) = paste0(0:nvmax, "_features")
   
   # Plot mean values for folds if indicated
-  if(plot_mean_rss){
-    plot(rowMeans(rss_for_cv_models), xlab = "Number of Features", ylab = "Mean RSS")
+  if(plot_mean_mse){
+    plot(rowMeans(mse_for_cv_models), xlab = "Number of Features", ylab = "Mean mse")
   }
   
-  return(rss_for_cv_models)
+  return(mse_for_cv_models)
   
 }
 
+### Add function to return an lm model of the best size
