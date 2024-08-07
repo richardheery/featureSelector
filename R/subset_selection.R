@@ -74,7 +74,7 @@ mse_for_subset = function(data, response, regsubsets, n){
   
 }
 
-#' Perform subset selection using cross-validated errors to evaluate the best model.
+#' Perform subset selection using cross-validated errors to evaluate the best model
 #'
 #' @param data Matrix or data.frame containing the response and features as columns.
 #' @param response Name of the column containing the response in data. 
@@ -86,7 +86,7 @@ mse_for_subset = function(data, response, regsubsets, n){
 #' Cannot be greater than K. 
 #' @return A data.frame with the CV MSE for best model of the indicated size found for each fold of data.  
 #' @export
-cross_validated_subset_selection = function(data, response, K = 10, method = "forward", nvmax = NULL, plot_mean_mse = T, ncores = 1){
+cross_validated_mse_for_subset_selection = function(data, response, K = 10, method = "forward", nvmax = NULL, plot_mean_mse = T, ncores = 1){
   
   # Check that response is the name of a column in data
   if(!response %in% names(data)){stop(paste(response, "is not the name of a column in data"))}
@@ -150,9 +150,9 @@ cross_validated_subset_selection = function(data, response, K = 10, method = "fo
   
 }
 
-#' Perform subset selection using cross-validated errors to evaulate the best model.
+#' Select the best model size from cross-validated errors for subset selection 
 #'
-#' @param cv_subset_results A data.frame with the results of cross_validated_subset_selection.
+#' @param cv_subset_results A data.frame with the results of cross_validated_mse_for_subset_selection.
 #' @param one_sd_error_rule A logical value indicating whether to use the one-standard-error rule to select the smallest
 #' model where the mean CV MSE is within one standard error of the model with the lowest mean CV MSE. Default is FALSE.
 #' @return 
