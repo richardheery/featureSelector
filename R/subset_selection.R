@@ -74,7 +74,7 @@ mse_for_subset = function(data, response, regsubsets, n){
   
 }
 
-#' Perform subset selection using cross-validated errors to evaulate the best model.
+#' Perform subset selection using cross-validated errors to evaluate the best model.
 #'
 #' @param data Matrix or data.frame containing the response and features as columns.
 #' @param response Name of the column containing the response in data. 
@@ -82,12 +82,20 @@ mse_for_subset = function(data, response, regsubsets, n){
 #' @param method Type of feature selection to perform. Same as for leaps::regsubsets. Default is forward selection.
 #' @param nvmax Maximum number of features to consider. Default is all features in data. 
 #' @param plot_mean_mse A logical value indicating whether to plot the mean mse for each size model. Default is TRUE. 
-#' @return 
+#' @param ncores Number of cores to use to process folds separately in parallel. Default is process each fold sequentially.
+#' Cannot be greater than K. 
+#' @return A data.frame with the CV MSE for best model of the indicated size found for each fold of data.  
 #' @export
-cross_validated_subset_selection = function(data, response, K = 10, method = "forward", nvmax = NULL, plot_mean_mse = T){
+cross_validated_subset_selection = function(data, response, K = 10, method = "forward", nvmax = NULL, plot_mean_mse = T, ncores = 1){
   
   # Check that response is the name of a column in data
   if(!response %in% names(data)){stop(paste(response, "is not the name of a column in data"))}
+  
+  # Give a warning if ncores is greater than K and set ncores equal to K.
+  if(ncores > K){
+    warning(sprintf("Provided value for ncores (%s) is greater than K (%s). Will just use %s cores.", ncores, K, K))
+    ncores = K
+  }
   
   # Set nvmax equal to the number of features in data if it is not provided
   if(is.null(nvmax)){nvmax = ncol(data) - 1}
@@ -98,9 +106,18 @@ cross_validated_subset_selection = function(data, response, K = 10, method = "fo
   # Create a matrix to store the CV results for each fold for each model size
   cv_results = matrix(NA, nrow = nvmax + 1, ncol = K)
   
+  # Make a cluster with the specified number of cores and register it
+  if(ncores > 1){
+    cl = parallel::makeCluster(ncores)
+    doParallel::registerDoParallel(cl, ncores)
+    on.exit(parallel::stopCluster(cl))
+    `%dopar%` = foreach::`%dopar%`
+  } else {
+    `%dopar%` <- foreach::`%do%`
+  }
+  
   # Perform subset selection on each fold
- `%do%` <- foreach::`%do%`
-  mse_for_cv_models = foreach::foreach(fold = folds, i = seq_along(folds)) %do% {
+  mse_for_cv_models = foreach::foreach(fold = folds, i = seq_along(folds)) %dopar% {
     
     # Separate data into train and test sets
     training = separate_training_and_test_data(data, k_folds_indices = folds, test_fold = i)$training
@@ -133,4 +150,33 @@ cross_validated_subset_selection = function(data, response, K = 10, method = "fo
   
 }
 
-### Add function to return an lm model of the best size
+#' Perform subset selection using cross-validated errors to evaulate the best model.
+#'
+#' @param cv_subset_results A data.frame with the results of cross_validated_subset_selection.
+#' @param one_sd_error_rule A logical value indicating whether to use the one-standard-error rule to select the smallest
+#' model where the mean CV MSE is within one standard error of the model with the lowest mean CV MSE. Default is FALSE.
+#' @return 
+#' @export
+select_best_model_size_from_cv_subset_results = function(cv_subset_results, one_sd_error_rule = FALSE){
+  
+  # Calculate the mean MSE for each model size across the folds and identify the best model size
+  mean_mse = rowMeans(cv_subset_results)
+  best_size = which.min(mean_mse)
+  
+  # Use one-standard-error rule to select the best model if one_sd_error_rule is TRUE.
+  if(one_sd_error_rule){
+    
+    # Calculate the standard error of the mean CV MSE estimate for each model size
+    message("Using one-standard-error rule")
+    sd_errors = apply(cv_subset_results, 1, sd)/sqrt(ncol(cv_subset_results))
+    
+    # Find the smallest model with a mean CV MSE within 1 standard error of the smallest value
+    one_sd_model = names(which.min(which(mean_mse - sd_errors <= mean_mse[best_size])))
+    best_size = which(names(mean_mse) == one_sd_model)
+  }
+  
+  # Return the best model size
+  message(paste("Best model size is", best_size - 1))
+  return(unname(best_size) - 1)
+  
+}
