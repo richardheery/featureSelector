@@ -181,5 +181,35 @@ select_best_model_size_from_cv_subset_results = function(cv_subset_results, one_
   
 }
 
-# Fix parallel calls to package functions
-# Add function to return the best features and overall model 
+#' Create a lm object from the best identified model of a specified size by subset selection
+#'
+#' @param regsubsets A regsubsets object.
+#' @param n The size of the model.
+#' @param data Data used to fit the model. Should be the same as used to create the regsubsets object.
+#' @return An lm object.
+#' @export
+extract_best_model_from_subset_selection = function(regsubsets, n, data){
+  
+  # Check that n is not greater than the biggest model size considered
+  if(n > regsubsets$nvmax - 1){stop("n cannot be greater than the maximum model size of the regsubsets object")}
+  
+  # Get the name of the response variable 
+  response = all.vars(formula(regsubsets$call[[2]]))[1]
+  
+  # Create a formula for the model
+  if(n == 0){
+    # Create a formula for the null model if n is 0
+    formula = as.formula(paste(response, "~", "1"))
+  } else {
+    # Get the names of the features in the best model of size n and create a formula from them
+    features = names(coef(l, n))[-1]
+    formula = as.formula(paste(response, "~", paste(features, collapse = " + ")))
+  }
+  
+  # Create the lm object and return
+  model = lm(formula = formula, data = data)
+  return(model)
+  
+}
+
+# broom::tidy(do.call(anova, lapply(0:6, function(x) extract_best_model_from_subset_selection(regsubsets, x, mtcars))))
