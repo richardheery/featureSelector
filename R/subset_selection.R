@@ -202,7 +202,7 @@ extract_best_model_from_subset_selection = function(regsubsets, n, data){
     formula = as.formula(paste(response, "~", "1"))
   } else {
     # Get the names of the features in the best model of size n and create a formula from them
-    features = names(coef(l, n))[-1]
+    features = names(coef(regsubsets, n))[-1]
     formula = as.formula(paste(response, "~", paste(features, collapse = " + ")))
   }
   
