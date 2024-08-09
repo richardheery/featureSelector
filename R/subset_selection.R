@@ -117,7 +117,7 @@ cross_validated_mse_for_subset_selection = function(data, response, K = 10, meth
   }
   
   # Perform subset selection on each fold
-  mse_for_cv_models = foreach::foreach(fold = folds, i = seq_along(folds)) %dopar% {
+  mse_for_cv_models = foreach::foreach(fold = folds, i = seq_along(folds), .packages = "featureSelector") %dopar% {
     
     # Separate data into train and test sets
     training = separate_training_and_test_data(data, k_folds_indices = folds, test_fold = i)$training
@@ -155,7 +155,7 @@ cross_validated_mse_for_subset_selection = function(data, response, K = 10, meth
 #' @param cv_subset_results A data.frame with the results of cross_validated_mse_for_subset_selection.
 #' @param one_sd_error_rule A logical value indicating whether to use the one-standard-error rule to select the smallest
 #' model where the mean CV MSE is within one standard error of the model with the lowest mean CV MSE. Default is FALSE.
-#' @return 
+#' @return An integer with the identified best model size. 
 #' @export
 select_best_model_size_from_cv_subset_results = function(cv_subset_results, one_sd_error_rule = FALSE){
   
@@ -180,3 +180,6 @@ select_best_model_size_from_cv_subset_results = function(cv_subset_results, one_
   return(unname(best_size) - 1)
   
 }
+
+# Fix parallel calls to package functions
+# Add function to return the best features and overall model 
