@@ -44,9 +44,9 @@ separate_training_and_test_data = function(data, k_folds_indices, test_fold){
 
 #' Calculate MSE using new data for the best model of an indicated size identified by subset selection
 #'
-#' @param data Matrix or data.frame containing new data the response and features as columns.
+#' @param data Matrix or data.frame containing the response and features as columns.
 #' @param response Name of the column containing the response in data. 
-#' @param regsubsets A regsubsets object
+#' @param regsubsets A regsubsets object.
 #' @param n The model size to evaluate. 
 #' @return The calculated MSE.
 #' @export

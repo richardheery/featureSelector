@@ -16,6 +16,7 @@ Imports:
     doParallel,
     dplyr,
     foreach,
+    glmnet,
     leaps,
     parallel,
     randomForest

@@ -7,11 +7,11 @@
 mse_for_subset(data, response, regsubsets, n)
 }
 \arguments{
-\item{data}{Matrix or data.frame containing new data the response and features as columns.}
+\item{data}{Matrix or data.frame containing the response and features as columns.}
 
 \item{response}{Name of the column containing the response in data.}
 
-\item{regsubsets}{A regsubsets object}
+\item{regsubsets}{A regsubsets object.}
 
 \item{n}{The model size to evaluate.}
 }
