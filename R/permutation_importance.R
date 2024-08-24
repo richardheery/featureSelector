@@ -109,5 +109,8 @@ permutation_importance = function(data, formula, model_function, error_function,
   
 }
 
+# Make sure K is appropriate for the dimensions of the data so that there are enough samples relative to features
+# Handle case when K = 1
+
 x = permutation_importance(data = mtcars, formula = formula("mpg ~ ."), model_function = lm, 
   error_function = Metrics::mse, K = 2, ncores = 1)
