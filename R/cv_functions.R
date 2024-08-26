@@ -1,10 +1,21 @@
 #' Create row indices for K folds of a dataset
 #'
-#' @param data Dataset to split into folds
+#' @param data Dataset to split into folds. Should contain the response variable as well as the associated features. 
+#' A warning will be given if there is not at least a ratio of 10:1 of observations to features in each training fold.
 #' @param K Number of folds. Default is 10. 
 #' @return A list with the row indices for K folds of data
 #' @export
 sample_k_fold_indices = function(data, K = 10){
+  
+  # Throw an error if K is 1
+  if(K == 1){
+    stop("K must be greater than 1")
+  }
+  
+  # Give a warning if there is not at least 10 times the number of 
+  if(nrow(data)*(K-1)/K < 10*(ncol(data)-1)){
+    warning("There are not enough observations to have a 10:1 ratio of observations to features in each training fold")
+  }
   
   # Get a vector of row indices for data
   indices = seq.int(nrow(data))

@@ -11,10 +11,10 @@
   newdata[[feature]] = sample(newdata[[feature]])
   
   # Get predictions with the permuted feature
-  predictions = predict(model, newdata = newdata)
+  permuted_predictions = predict(model, newdata = newdata)
 
   # Calculate the test error for the model
-  test_error = error_function(response_values, predictions)
+  test_error = error_function(response_values, permuted_predictions)
   return(test_error)
   
 }
@@ -75,7 +75,7 @@ permutation_importance = function(data, formula, model_function, error_function,
   }
   
   # Permute features across folds
-  test_errors_for_folds = foreach::foreach(fold = folds, i = seq_along(folds), .packages = "featureSelector") %dopar% {
+  foreach::foreach(fold = folds, i = seq_along(folds), .packages = "featureSelector") %dopar% {
     
     # Separate data into train and test sets
     training = separate_training_and_test_data(data, k_folds_indices = folds, test_fold = i)$training
@@ -83,14 +83,14 @@ permutation_importance = function(data, formula, model_function, error_function,
     test_response = test[[response_name]]
     
     # Fit the model to the training data
-    model_arguments = c(additional_args, list(formula = formula, data = test))
+    model_arguments = c(additional_args, list(formula = formula, data = training))
     model = do.call(model_function, model_arguments)
     
     # Get predictions with the test data
-    predictions = predict(model, newdata = test)
+    test_predictions = predict(model, newdata = test)
   
     # Calculate the test error for the model
-    test_error = error_function(test_response, predictions)
+    test_error = error_function(test_response, test_predictions)
     
     # Permute each feature and recalculate the test error
     permuted_feature_test_error = sapply(feature_names, function(x) 
@@ -108,9 +108,3 @@ permutation_importance = function(data, formula, model_function, error_function,
   return(list(cv_error_diff = cv_error_diff, cv_error_ratio = cv_error_ratio))
   
 }
-
-# Make sure K is appropriate for the dimensions of the data so that there are enough samples relative to features
-# Handle case when K = 1
-
-x = permutation_importance(data = mtcars, formula = formula("mpg ~ ."), model_function = lm, 
-  error_function = Metrics::mse, K = 2, ncores = 1)
